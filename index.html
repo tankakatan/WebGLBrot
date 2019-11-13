@@ -22,6 +22,7 @@
             uniform vec2 offset;
             uniform float zoom;
             uniform int maxIterations;
+            // uniform int infinity;
 
             float rescale (float x, float src_min, float src_max, float dst_min, float dst_max) {
                 return dst_min + ((dst_max - dst_min) * ((x - src_min) / (src_max - src_min)));
@@ -38,6 +39,8 @@
                 float re = initial_re;
                 float im = initial_im;
 
+                // float maxIterations = rescale (zoom, 1.0, 0.0, 200.0, 1024.0);
+
                 int iteration = 0;
 
                 for (int i = 0; i < INFINIT_ITERATION_COUNT; i++) {
@@ -47,7 +50,9 @@
                     re = next_re + initial_re;
                     im = next_im + initial_im;
 
-                    if (sqrt ((re * re) + (im * im)) > INFINITY) {
+                    // if (sqrt ((re * re + im * im)) > INFINITY) {
+
+                    if (re * re + im * im > INFINITY) { // float (infinity)) {
                         iteration = maxIterations - i;
                         break;
                     }

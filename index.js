@@ -31,11 +31,24 @@ document.addEventListener ('DOMContentLoaded', async () => {
     iterationRange.min = 102
     iterationRange.max = 1024
     iterationRange.step = 1
-    iterationRange.value = 200
+    iterationRange.value = 300
     iterationRange.style.position = 'absolute'
     iterationRange.style.zIndex = '100'
 
     document.body.appendChild (iterationRange)
+
+    // const infinityRange = document.createElement ('input')
+
+    // infinityRange.type = 'range'
+    // infinityRange.min = 100
+    // infinityRange.max = 100000
+    // infinityRange.step = 10
+    // infinityRange.value = 10000
+    // infinityRange.style.position = 'absolute'
+    // infinityRange.style.zIndex = '100'
+    // infinityRange.style.top = '20px'
+
+    // document.body.appendChild (infinityRange)
 
     const canvas = document.createElement ('canvas')
     const scale = window.devicePixelRatio
@@ -46,15 +59,16 @@ document.addEventListener ('DOMContentLoaded', async () => {
 
     const program = setup ({ gl, scale })
     const canvasSize = v2 (gl.canvas.width, gl.canvas.height)
-    const aspectRatio = canvasSize.x / canvasSize.y
 
+    // const aspectRatio = canvasSize.x / canvasSize.y
     // const canvasCenter = canvasSize.scale (0.5)
 
     let zoom = 1.0
     let offset = v2 (0, 0)
     let iterations = iterationRange.value
+    let infinity // = infinityRange.value
 
-    render ({ gl, program, zoom, offset, iterations })
+    render ({ gl, program, zoom, offset, iterations, infinity })
 
     document.body.onwheel = function ({ deltaY, clientX, clientY }) {
 
@@ -72,26 +86,35 @@ document.addEventListener ('DOMContentLoaded', async () => {
         offset = offset.sub (cursorShift)
         zoom = nextZoom
 
-        render ({ gl, program, zoom, offset, iterations })
+        render ({ gl, program, zoom, offset, iterations, infinity })
     }
 
     iterationRange.addEventListener ('input', e => {
 
         iterations = parseInt (e.srcElement.value)
 
-        render ({ gl, program, zoom, offset, iterations })
+        render ({ gl, program, zoom, offset, iterations, infinity })
     })
+
+    // infinityRange.addEventListener ('input', e => {
+
+    //     infinity = parseInt (e.srcElement.value)
+
+    //     render ({ gl, program, zoom, offset, iterations, infinity })
+    // })
 })
 
-function render ({ gl, program, zoom, offset, iterations }) {
+function render ({ gl, program, zoom, offset, iterations, infinity }) {
 
     window.requestAnimationFrame (() => {
 
         const zoomUniform = gl.getUniformLocation (program, 'zoom')
         const offsetUniform = gl.getUniformLocation (program, 'offset')
         const iterationsUniform = gl.getUniformLocation (program, 'maxIterations')
+        // const infinityUniform = gl.getUniformLocation (program, 'infinity')
 
         gl.uniform1f (zoomUniform, zoom)
+        // gl.uniform1i (infinityUniform, infinity)
         gl.uniform1i (iterationsUniform, iterations)
         gl.uniform2fv (offsetUniform, new Float32Array (offset.list))
 

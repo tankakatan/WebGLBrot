@@ -55,7 +55,8 @@ document.addEventListener ('DOMContentLoaded', async () => {
 
     document.body.appendChild (canvas)
 
-    const gl = canvas.getContext ('webgl2', { alpha: false, antialias: false }) // true })
+    const gl = canvas.getContext ('webgl2', { alpha: false, antialias: true }) ||
+               canvas.getContext ('webgl',  { alpha: false, antialias: true }) // true })
 
     const program = setup ({ gl, scale })
     const canvasSize = v2 (gl.canvas.width, gl.canvas.height)
@@ -70,7 +71,7 @@ document.addEventListener ('DOMContentLoaded', async () => {
 
     render ({ gl, program, zoom, offset, iterations, infinity })
 
-    document.body.onwheel = function ({ deltaY, clientX, clientY }) {
+    function handleZoom ({ deltaY, clientX, clientY }) {
 
         const nextZoom = zoom + (zoom * scale * deltaY / canvasSize.y)
 
@@ -88,6 +89,9 @@ document.addEventListener ('DOMContentLoaded', async () => {
 
         render ({ gl, program, zoom, offset, iterations, infinity })
     }
+
+    window.onwheel = function () { return false }
+    document.querySelector ('canvas').addEventListener ('mousewheel', handleZoom)
 
     iterationRange.addEventListener ('input', e => {
 

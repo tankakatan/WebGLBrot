@@ -59,17 +59,17 @@ document.addEventListener ('DOMContentLoaded', async () => {
     document.body.onwheel = function ({ deltaY, clientX, clientY }) {
 
         const nextZoom = zoom + (zoom * scale * deltaY / canvasSize.y)
+
         const cursorAbsolutePosition = v2 (clientX, clientY).scale (scale).rescale (
-            v2 (0, canvasSize.x), v2 (-1, 1).scale (aspectRatio),
+            v2 (0, canvasSize.x), v2 (-1, 1), //.scale (aspectRatio),
             v2 (0, canvasSize.y), v2 (-1, 1),
         )
 
         const cursorPositionBeforeZoom = cursorAbsolutePosition.scale (zoom)
         const cursorPositionAfterZoom = cursorAbsolutePosition.scale (nextZoom)
-        const cursorShift = cursorPositionAfterZoom.sub (cursorPositionBeforeZoom)
+        const cursorShift = cursorPositionAfterZoom.sub (cursorPositionBeforeZoom).scale (scale)
 
         offset = offset.sub (cursorShift)
-
         zoom = nextZoom
 
         render ({ gl, program, zoom, offset, iterations })

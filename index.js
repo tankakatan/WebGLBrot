@@ -1,69 +1,102 @@
 "use strict";
 
+function v2 (x, y) {
+
+    if (Array.isArray (x) && y === undefined) {
+        x = x[0]
+        y = x[1]
+    }
+
+    const v = { x, y }
+
+    return Object.defineProperties (v, {
+
+        add: { value: function (v) { return v2 (this.x + v.x, this.y + v.y) } },
+        sub: { value: function (v) { return this.add (v.scale (-1)) } },
+      scale: { value: function (f) { return v2 (this.x * f, this.y * f) } },
+    rescale: { value: function (v_x_src, v_x_dst, v_y_src, v_y_dst) {
+                return v2 (rescale (this.x, v_x_src.x, v_x_src.y, v_x_dst.x, v_x_dst.y),
+                           rescale (this.y, v_y_src.x, v_y_src.y, v_y_dst.x, v_y_dst.y)) } },
+
+       list: { get: function () { return [this.x, this.y] } },
+       type: { get: () => 'v2' },
+    })
+}
+
 document.addEventListener ('DOMContentLoaded', async () => {
+
+    const iterationRange = document.createElement ('input')
+
+    iterationRange.type = 'range'
+    iterationRange.min = 102
+    iterationRange.max = 1024
+    iterationRange.step = 1
+    iterationRange.value = 200
+    iterationRange.style.position = 'absolute'
+    iterationRange.style.zIndex = '100'
+
+    document.body.appendChild (iterationRange)
 
     const canvas = document.createElement ('canvas')
     const scale = window.devicePixelRatio
 
     document.body.appendChild (canvas)
 
-    const gl = canvas.getContext ('webgl2', { alpha: false, antialias: true })
+    const gl = canvas.getContext ('webgl2', { alpha: false, antialias: false }) // true })
 
     const program = setup ({ gl, scale })
-    const center = { x: gl.canvas.width / 2, y: gl.canvas.height / 2 }
+    const canvasSize = v2 (gl.canvas.width, gl.canvas.height)
+    const aspectRatio = canvasSize.x / canvasSize.y
 
-    let zoom = 1
-    let offset = { x: 0.0, y: 0.0 }
+    // const canvasCenter = canvasSize.scale (0.5)
 
-    window.requestAnimationFrame (() => draw ({ gl, program, zoom, offset }))
+    let zoom = 1.0
+    let offset = v2 (0, 0)
+    let iterations = iterationRange.value
+
+    render ({ gl, program, zoom, offset, iterations })
 
     document.body.onwheel = function ({ deltaY, clientX, clientY }) {
-        const delta = zoom * deltaY / gl.canvas.height
-        const nextZoom = zoom + delta
 
-        if (nextZoom <= 0) {
-            return
-        }
+        const nextZoom = zoom + (zoom * scale * deltaY / canvasSize.y)
+        const cursorAbsolutePosition = v2 (clientX, clientY).scale (scale).rescale (
+            v2 (0, canvasSize.x), v2 (-1, 1).scale (aspectRatio),
+            v2 (0, canvasSize.y), v2 (-1, 1),
+        )
 
-        const zoomDiff = 1 - nextZoom / zoom
+        const cursorPositionBeforeZoom = cursorAbsolutePosition.scale (zoom)
+        const cursorPositionAfterZoom = cursorAbsolutePosition.scale (nextZoom)
+        const cursorShift = cursorPositionAfterZoom.sub (cursorPositionBeforeZoom)
+
+        offset = offset.sub (cursorShift)
+
         zoom = nextZoom
 
-        // const cursor = { x: (pageX - center.x) / center.x, y: (pageY - center.y) / center.y }
-        const targetOffset = { x: (clientX - center.x) / center.x, y: (clientY - center.y) / center.y }
-
-        // offset.x = offset.x + ((cursor.x - offset.x) * Math.abs (delta))
-        // offset.y = offset.y + ((cursor.y - offset.y) * delta)
-
-        offset.x += (targetOffset.x - offset.x) * zoom * zoomDiff
-        offset.y += (targetOffset.y - offset.y) * zoom * zoomDiff
-
-        window.requestAnimationFrame (() => draw ({ gl, program, zoom, offset }))
+        render ({ gl, program, zoom, offset, iterations })
     }
+
+    iterationRange.addEventListener ('input', e => {
+
+        iterations = parseInt (e.srcElement.value)
+
+        render ({ gl, program, zoom, offset, iterations })
+    })
 })
 
-function createShader (gl, type, source) {
-    var shader = gl.createShader (type)
-    gl.shaderSource (shader, source)
-    gl.compileShader (shader)
-    if (!gl.getShaderParameter (shader, gl.COMPILE_STATUS)) {
-        alert ('An error occurred compiling the shaders: ' + gl.getShaderInfoLog (shader))
-        gl.deleteShader (shader)
-        return null
-    }
-    return shader
-}
+function render ({ gl, program, zoom, offset, iterations }) {
 
-function createProgram (gl, vertexShader, fragmentShader) {
-    var program = gl.createProgram ()
-    gl.attachShader (program, vertexShader)
-    gl.attachShader (program, fragmentShader)
-    gl.linkProgram (program)
-    if (!gl.getProgramParameter (program, gl.LINK_STATUS)) {
-        alert ('Unable to initialize the shader program: ' + gl.getProgramInfoLog (program))
-        gl.deleteProgram (program)
-        return null
-    }
-    return program
+    window.requestAnimationFrame (() => {
+
+        const zoomUniform = gl.getUniformLocation (program, 'zoom')
+        const offsetUniform = gl.getUniformLocation (program, 'offset')
+        const iterationsUniform = gl.getUniformLocation (program, 'maxIterations')
+
+        gl.uniform1f (zoomUniform, zoom)
+        gl.uniform1i (iterationsUniform, iterations)
+        gl.uniform2fv (offsetUniform, new Float32Array (offset.list))
+
+        gl.drawArrays (gl.TRIANGLE_STRIP, 0, 4)
+    })
 }
 
 function setup ({ gl, scale }) {
@@ -86,7 +119,7 @@ function setup ({ gl, scale }) {
 
     // look up where the vertex data needs to go.
     const vertexPositionAttribute = gl.getAttribLocation (program, 'aVertexPosition')
-    const windowSizeUniform = gl.getUniformLocation (program, 'windowSize')
+    const canvasSizeUniform = gl.getUniformLocation (program, 'canvasSize')
 
     // Create a buffer and put three 2d clip space points in it
     const positionBuffer = gl.createBuffer ()
@@ -116,7 +149,7 @@ function setup ({ gl, scale }) {
 
     // Tell it to use our program (pair of shaders)
     gl.useProgram (program)
-    gl.uniform2fv (windowSizeUniform, new Float32Array ([ gl.canvas.width, gl.canvas.height ]))
+    gl.uniform2fv (canvasSizeUniform, new Float32Array ([ gl.canvas.width, gl.canvas.height ]))
 
     // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
     const size = 2          // 2 components per iteration
@@ -134,13 +167,31 @@ function setup ({ gl, scale }) {
     return program
 }
 
-function draw ({ gl, program, zoom, offset }) {
+function rescale (x, src_min, src_max, dst_min, dst_max) {
+    return dst_min + ((dst_max - dst_min) * ((x - src_min) / (src_max - src_min)))
+}
 
-    const zoomUniform = gl.getUniformLocation (program, 'zoom')
-    const offsetUniform = gl.getUniformLocation (program, 'offset')
+function createShader (gl, type, source) {
+    var shader = gl.createShader (type)
+    gl.shaderSource (shader, source)
+    gl.compileShader (shader)
+    if (!gl.getShaderParameter (shader, gl.COMPILE_STATUS)) {
+        alert ('An error occurred compiling the shaders: ' + gl.getShaderInfoLog (shader))
+        gl.deleteShader (shader)
+        return null
+    }
+    return shader
+}
 
-    gl.uniform1f (zoomUniform, zoom)
-    gl.uniform2fv (offsetUniform, new Float32Array ([offset.x, offset.y]))
-
-    gl.drawArrays (gl.TRIANGLE_STRIP, 0, 4)
+function createProgram (gl, vertexShader, fragmentShader) {
+    var program = gl.createProgram ()
+    gl.attachShader (program, vertexShader)
+    gl.attachShader (program, fragmentShader)
+    gl.linkProgram (program)
+    if (!gl.getProgramParameter (program, gl.LINK_STATUS)) {
+        alert ('Unable to initialize the shader program: ' + gl.getProgramInfoLog (program))
+        gl.deleteProgram (program)
+        return null
+    }
+    return program
 }

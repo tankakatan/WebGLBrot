@@ -9,16 +9,19 @@
         </script>
         <script id="2d-fragment-shader" type="notjs">
 
+            #version 100
+
             #define INITIAL_RADIUS 2.0
             #define INFINITY 1000.0
-            #define MAX_ITERATIONS 200
+            #define INFINIT_ITERATION_COUNT 10000
             #extension GL_ARB_gpu_shader_fp64: enable
 
             precision highp float;
 
-            uniform vec2 windowSize;
+            uniform vec2 canvasSize;
             uniform vec2 offset;
             uniform float zoom;
+            uniform int maxIterations;
 
             float rescale (float x, float src_min, float src_max, float dst_min, float dst_max) {
                 return dst_min + ((dst_max - dst_min) * ((x - src_min) / (src_max - src_min)));
@@ -26,20 +29,18 @@
 
             void main () {
 
-                float aspect_ratio = windowSize.x / windowSize.y;
+                float aspect_ratio = canvasSize.x / canvasSize.y;
                 float radius = INITIAL_RADIUS * zoom;
 
-                // vec2 center = windowSize / 2.0;
-
-                float initial_re = (rescale (gl_FragCoord.x, 0.0, windowSize.x, -radius, radius) + offset.x) * aspect_ratio;
-                float initial_im = (rescale (gl_FragCoord.y, 0.0, windowSize.y, -radius, radius) - offset.y);
+                float initial_re = (rescale (gl_FragCoord.x, 0.0, canvasSize.x, -radius, radius) + offset.x) * aspect_ratio;
+                float initial_im = (rescale (gl_FragCoord.y, 0.0, canvasSize.y, -radius, radius) - offset.y);
 
                 float re = initial_re;
                 float im = initial_im;
 
-                int iteration = MAX_ITERATIONS;
+                int iteration = 0;
 
-                for (int i = 0; i < MAX_ITERATIONS; i++) {
+                for (int i = 0; i < INFINIT_ITERATION_COUNT; i++) {
                     float next_re = re * re - im * im;
                     float next_im = 2.0 * re * im;
 
@@ -47,12 +48,16 @@
                     im = next_im + initial_im;
 
                     if (sqrt ((re * re) + (im * im)) > INFINITY) {
-                        iteration = i;
+                        iteration = maxIterations - i;
+                        break;
+                    }
+
+                    if (i > maxIterations) {
                         break;
                     }
                 }
 
-                float temperature = rescale (float (MAX_ITERATIONS - iteration), 0.0, INFINITY, 0.0, 1.0);
+                float temperature = rescale (float (iteration), 0.0, INFINITY, 0.0, 1.0);
                 temperature = rescale (sqrt (temperature), 0.0, 1.0, 0.0, 16777215.0); // 16777215 == 0xffffff
 
                 float r = rescale (floor (mod ((temperature / 256.0 / 256.0), 256.0)), 0.0, 255.0, 0.0, 1.0);

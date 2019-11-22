@@ -12,7 +12,7 @@
             #version 100
 
             #define INITIAL_RADIUS 2.0
-            #define INFINITY 1000.0
+            #define INFINITY 1000000.0
             #define INFINIT_ITERATION_COUNT 10000
             #extension GL_ARB_gpu_shader_fp64: enable
 
@@ -52,7 +52,9 @@
 
                     // if (sqrt ((re * re + im * im)) > INFINITY) {
 
-                    if (re * re + im * im > INFINITY) { // float (infinity)) {
+                    float squaredMagnetude = re * re + im * im;
+
+                    if (squaredMagnetude > INFINITY) { // float (infinity)) {
                         iteration = maxIterations - i;
                         break;
                     }
@@ -62,20 +64,20 @@
                     }
                 }
 
-                float temperature = rescale (float (iteration), 0.0, INFINITY, 0.0, 1.0);
+                float temperature = rescale (float (iteration), 0.0, float (maxIterations), 0.0, 1.0);
                 temperature = rescale (sqrt (temperature), 0.0, 1.0, 0.0, 16777215.0); // 16777215 == 0xffffff
 
-                float r = rescale (floor (mod ((temperature / 256.0 / 256.0), 256.0)), 0.0, 255.0, 0.0, 1.0);
+                float b = rescale (floor (mod ((temperature / 256.0 / 256.0), 256.0)), 0.0, 255.0, 0.0, 1.0);
                 float g = rescale (floor (mod ((temperature / 256.0        ), 256.0)), 0.0, 255.0, 0.0, 1.0);
-                float b = rescale (floor (mod ((temperature                ), 256.0)), 0.0, 255.0, 0.0, 1.0);
+                float r = rescale (floor (mod ((temperature                ), 256.0)), 0.0, 255.0, 0.0, 1.0);
 
                 gl_FragColor = vec4 (r, g, b, 1.0);
             }
         </script>
         <style>
-            * { padding: 0; margin: 0; }
-            body { height: 100%; }
-            canvas { display: block; width: 100vw; height: 100vh; }
+            * { padding: 0; margin: 0; border: 0; }
+            html, body { height: 100vh; width: 100vw; display: block; overflow: hidden; }
+            canvas { height: 100vh; width: 100vw; display: block; }
         </style>
         <script type="text/javascript" src="index.js"></script>
     </head>

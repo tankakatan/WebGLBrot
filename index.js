@@ -1,5 +1,9 @@
 "use strict";
 
+// https://stackoverflow.com/questions/42909947/webgl-double-precision-emulation-with-two-floats-has-no-effect
+// https://www.thasler.com/blog/blog/glsl-part2-emu
+// https://gist.github.com/LMLB/4242936fe79fb9de803c20d1196db8f3 ← !
+
 function v2 (x, y) {
 
     if (Array.isArray (x) && y === undefined) {
@@ -55,8 +59,8 @@ document.addEventListener ('DOMContentLoaded', async () => {
 
     document.body.appendChild (canvas)
 
-    const gl = canvas.getContext ('webgl2', { alpha: false, antialias: true }) ||
-               canvas.getContext ('webgl',  { alpha: false, antialias: true }) // true })
+    const gl = canvas.getContext ('webgl2', { antialias: false, depth: false, alpha: false }) ||
+               canvas.getContext ('webgl',  { antialias: false, depth: false, alpha: false }) // true })
 
     const program = setup ({ gl, scale })
     const canvasSize = v2 (gl.canvas.width, gl.canvas.height)
@@ -90,8 +94,9 @@ document.addEventListener ('DOMContentLoaded', async () => {
         render ({ gl, program, zoom, offset, iterations, infinity })
     }
 
-    window.onwheel = function () { return false }
+    // window.onwheel = function () { return false }
     document.querySelector ('canvas').addEventListener ('mousewheel', handleZoom)
+    document.querySelector ('body').addEventListener ('DOMMouseScroll', handleZoom)
 
     iterationRange.addEventListener ('input', e => {
 
@@ -120,7 +125,7 @@ function render ({ gl, program, zoom, offset, iterations, infinity }) {
         gl.uniform1f (zoomUniform, zoom)
         // gl.uniform1i (infinityUniform, infinity)
         gl.uniform1i (iterationsUniform, iterations)
-        gl.uniform2fv (offsetUniform, new Float32Array (offset.list))
+        gl.uniform2fv (offsetUniform, new Float64Array (offset.list))
 
         gl.drawArrays (gl.TRIANGLE_STRIP, 0, 4)
     })

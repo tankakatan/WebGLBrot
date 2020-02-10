@@ -1,6 +1,6 @@
 "use strict";
 
-const { f32, double } = require ('./f32')
+const { f32, double } = require ('./double')
 const { expect } = require ('chai')
 
 describe ('Float 32', () => {

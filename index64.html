@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script id="2d-vertex-shader" type="x-shader/x-vertex">
+            attribute vec4 aVertexPosition;
+            void main () {
+                gl_Position = aVertexPosition;
+            }
+        </script>
+        <script id="2d-fragment-shader" type="x-shader/x-fragment">
+
+            #version 100
+
+            #define INITIAL_RADIUS 2.0
+            #define INFINITY 1000000.0
+            #define INFINIT_ITERATION_COUNT 10000
+            #extension GL_ARB_gpu_shader_fp64: enable
+
+            precision highp float;
+
+            uniform vec2 canvasSize;
+            uniform vec2 offset;
+            uniform float zoom;
+            uniform int maxIterations;
+            // uniform int infinity;
+
+            float rescale (float x, float src_min, float src_max, float dst_min, float dst_max) {
+                return dst_min + ((dst_max - dst_min) * ((x - src_min) / (src_max - src_min)));
+            }
+
+            void main () {
+
+                float aspect_ratio = canvasSize.x / canvasSize.y;
+                float radius = INITIAL_RADIUS * zoom;
+
+                float initial_re = (rescale (gl_FragCoord.x, 0.0, canvasSize.x, -radius, radius) + offset.x) * aspect_ratio;
+                float initial_im = (rescale (gl_FragCoord.y, 0.0, canvasSize.y, -radius, radius) - offset.y);
+
+                float re = initial_re;
+                float im = initial_im;
+
+                // float maxIterations = rescale (zoom, 1.0, 0.0, 200.0, 1024.0);
+
+                int iteration = 0;
+
+                for (int i = 0; i < INFINIT_ITERATION_COUNT; i++) {
+                    float next_re = re * re - im * im;
+                    float next_im = 2.0 * re * im;
+
+                    re = next_re + initial_re;
+                    im = next_im + initial_im;
+
+                    // if (sqrt ((re * re + im * im)) > INFINITY) {
+
+                    float squaredMagnetude = re * re + im * im;
+
+                    if (squaredMagnetude > INFINITY) { // float (infinity)) {
+                        iteration = maxIterations - i;
+                        break;
+                    }
+
+                    if (i > maxIterations) {
+                        break;
+                    }
+                }
+
+                float temperature = rescale (float (iteration), 0.0, float (maxIterations), 0.0, 1.0);
+                temperature = rescale (sqrt (temperature), 0.0, 1.0, 0.0, 16777215.0); // 16777215 == 0xffffff
+
+                float b = rescale (floor (mod ((temperature / 256.0 / 256.0), 256.0)), 0.0, 255.0, 0.0, 1.0);
+                float g = rescale (floor (mod ((temperature / 256.0        ), 256.0)), 0.0, 255.0, 0.0, 1.0);
+                float r = rescale (floor (mod ((temperature                ), 256.0)), 0.0, 255.0, 0.0, 1.0);
+
+                gl_FragColor = vec4 (r, g, b, 1.0);
+            }
+        </script>
+        <style>
+            * { padding: 0; margin: 0; border: 0; }
+            html, body { height: 100vh; width: 100vw; display: block; overflow: hidden; }
+            canvas { height: 100vh; width: 100vw; display: block; }
+        </style>
+        <script type="text/javascript" src="double.js"></script>
+        <script type="text/javascript" src="index64.js"></script>
+    </head>
+    <body>
+    </body>
+</html>

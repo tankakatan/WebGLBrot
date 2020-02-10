@@ -4,6 +4,30 @@
 // https://www.thasler.com/blog/search?q=glsl+shader
 // https://gist.github.com/LMLB/4242936fe79fb9de803c20d1196db8f3
 
+function v2double (x, y) {
+
+    if (Array.isArray (x) && y === undefined) {
+        x = x[0]
+        y = x[1]
+    }
+
+    if (x.type !== 'double') x = double (x)
+    if (y.type !== 'double') y = double (y)
+
+    return Object.defineProperties ({ x, y }, {
+
+        add: { value: function (v) { return v2double (this.x.add (v.x), this.y.add (v.y)) } },
+        sub: { value: function (v) { return this.add (v.scale (-1)) } },
+      scale: { value: function (f) { if (f.type !== 'double') f = double (f); return v2double (this.x.mul (f, this.y.mul (f))) } },
+    rescale: { value: function (src_min, src_max, dst_min, dst_max) {
+                return v2double (this.x.rescale (src_min.x, src_max.x, dst_min.x, dst_max.x),
+                                 this.y.rescale (src_min.y, src_max.y, dst_min.y, dst_max.y)) } },
+
+       list: { get: function () { return [this.x, this.y] } },
+       type: { get: () => 'v2double' },
+    })
+}
+
 function double (x, y) {
 
     if (y === undefined) {
@@ -14,7 +38,9 @@ function double (x, y) {
 
           x: { get: function () { return this[0].type === 'f32' ? this[0] : f32 (this[0]) } },
           y: { get: function () { return this[1].type === 'f32' ? this[1] : f32 (this[1]) } },
-       list: { get: function () { return [this[0], this[1]] } },
+         hi: { get: function () { return this.x } }, // alias to x
+         lo: { get: function () { return this.y } }, // alias to y
+
        type: { get: function () { return 'double' } },
        as64: { get: function () { return this.x + this.y } },
 
@@ -88,6 +114,10 @@ function double (x, y) {
          eq: { value: function (that) { return this.comp (that) ===  0 } },
          gt: { value: function (that) { return this.comp (that) ===  1 } },
          lt: { value: function (that) { return this.comp (that) === -1 } },
+
+    rescale: { value: function (src_min, src_max, dst_min, dst_max) {
+            return dst_min.add (dst_max.sub (dst_min).mul (this.sub (src_min).div (src_max.sub (src_min)))) } },
+
     })
 }
 
@@ -100,22 +130,6 @@ Object.defineProperties (double, {
 
         const f64_head = f32 (f64_biased - (f64_biased - f64))
         const f64_tail = f32 (f64 - f64_head)
-
-        // console.log (' ')
-        // console.log ('\n',
-        //     '                                    64 value :', f64.toString (2), '\n',
-        //     '                                        bias :', bias.toString (2), '\n',
-        //     '                                   64 biased :', f64_biased.toString (2), '\n',
-        //     '                                        head :', f64_head.toString (2), '\n',
-        //     '                                        tail :', f64_tail.toString (2), '\n',
-        //     '                                 head + tail :', (f64_head + f64_tail).toString (2), '\n',
-        //     '                                    64 value :', f64.toString (2), '\n',
-        //     '...', '\n',
-        //     '                                     32 head :', f32 (f64_head).toString (2), '\n',
-        //     '                                     32 tail :', f32 (f64_tail).toString (2), '\n',
-        //     '                           32 head + 32 tail :', (f32 (f64_head) + f32 (f64_tail)).toString (2), '\n',
-
-        // )
 
         return double (f64_head, f64_tail) } },
 })
@@ -163,5 +177,5 @@ function f32 (x) {
 }
 
 if (module !== undefined) {
-    module.exports = { f32, double } // for tests
+    module.exports = { f32, double, v2double } // for tests
 }

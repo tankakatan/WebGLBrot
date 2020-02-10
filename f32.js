@@ -4,19 +4,19 @@
 // https://www.thasler.com/blog/search?q=glsl+shader
 // https://gist.github.com/LMLB/4242936fe79fb9de803c20d1196db8f3
 
-function v2f32 (x, y) {
+function double (x, y) {
 
-    if (Array.isArray (x) && y === undefined) {
-        x = x[0]
-        y = x[1]
+    if (y === undefined) {
+        return Array.isArray (x) ? double ([ x[0], x[1] ]) : double.from64 (x)
     }
 
-    return Object.defineProperties (new Float32Array ([x, y]), {
+    return Object.defineProperties (new Float32Array ([ x, y ]), {
 
           x: { get: function () { return this[0].type === 'f32' ? this[0] : f32 (this[0]) } },
           y: { get: function () { return this[1].type === 'f32' ? this[1] : f32 (this[1]) } },
        list: { get: function () { return [this[0], this[1]] } },
-       type: { get: function () { return 'v2f32' } },
+       type: { get: function () { return 'double' } },
+       as64: { get: function () { return this.x + this.y } },
 
         add: { value: function (that) {
 
@@ -91,7 +91,7 @@ function v2f32 (x, y) {
     })
 }
 
-Object.defineProperties (v2f32, {
+Object.defineProperties (double, {
 
     from64: { value: function (f64) {
 
@@ -117,13 +117,13 @@ Object.defineProperties (v2f32, {
 
         // )
 
-        return v2f32 (f64_head, f64_tail) } },
+        return double (f64_head, f64_tail) } },
 })
 
 function normalize (head, tail) {
     const result_head = head.add (tail)
     const result_tail = tail.sub (result_head.sub (head))
-    return v2f32 (result_head, result_tail)
+    return double (result_head, result_tail)
 }
 
 function f32 (x) {
@@ -157,11 +157,11 @@ function f32 (x) {
                                                  .add (tail_product)
                                                  .add (this_tail.mul (that_tail))
 
-                return v2f32 (product_head, product_tail)
+                return double (product_head, product_tail)
         } },
     })
 }
 
 if (module !== undefined) {
-    module.exports = { f32, v2f32 } // for tests
+    module.exports = { f32, double } // for tests
 }

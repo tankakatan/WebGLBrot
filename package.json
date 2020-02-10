@@ -1,0 +1,24 @@
+{
+  "name": "webglbrot",
+  "version": "1.0.0",
+  "description": "Mandelbrot set in WebGL. This page is available @ [GitHub Pages](https://tankakatan.github.io/WebGLBrot/). WIP.",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha test.f32.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tankakatan/WebGLBrot.git"
+  },
+  "author": "Denis Voropaev",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tankakatan/WebGLBrot/issues"
+  },
+  "homepage": "https://github.com/tankakatan/WebGLBrot#readme",
+  "dependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^7.0.1",
+    "ololog": "^1.1.151"
+  }
+}

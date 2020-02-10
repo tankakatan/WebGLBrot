@@ -4,6 +4,8 @@
 // https://www.thasler.com/blog/blog/glsl-part2-emu
 // https://gist.github.com/LMLB/4242936fe79fb9de803c20d1196db8f3 ← !
 
+// https://2ality.com/2012/04/number-encoding.html
+
 function v2 (x, y) {
 
     if (Array.isArray (x) && y === undefined) {
@@ -18,9 +20,9 @@ function v2 (x, y) {
         add: { value: function (v) { return v2 (this.x + v.x, this.y + v.y) } },
         sub: { value: function (v) { return this.add (v.scale (-1)) } },
       scale: { value: function (f) { return v2 (this.x * f, this.y * f) } },
-    rescale: { value: function (v_x_src, v_x_dst, v_y_src, v_y_dst) {
-                return v2 (rescale (this.x, v_x_src.x, v_x_src.y, v_x_dst.x, v_x_dst.y),
-                           rescale (this.y, v_y_src.x, v_y_src.y, v_y_dst.x, v_y_dst.y)) } },
+    rescale: { value: function (src_min, src_max, dst_min, dst_max) {
+                return v2 (rescale (this.x, src_min.x, src_max.x, dst_min.x, dst_max.x),
+                           rescale (this.y, src_min.y, src_max.y, dst_min.y, dst_max.y)) } },
 
        list: { get: function () { return [this.x, this.y] } },
        type: { get: () => 'v2' },
@@ -80,8 +82,8 @@ document.addEventListener ('DOMContentLoaded', async () => {
         const nextZoom = zoom + (zoom * scale * deltaY / canvasSize.y)
 
         const cursorAbsolutePosition = v2 (clientX, clientY).scale (scale).rescale (
-            v2 (0, canvasSize.x), v2 (-1, 1), //.scale (aspectRatio),
-            v2 (0, canvasSize.y), v2 (-1, 1),
+            v2 (0, 0), v2 (canvasSize.x, canvasSize.y),
+            v2 (-1, -1), v2 (1, 1)
         )
 
         const cursorPositionBeforeZoom = cursorAbsolutePosition.scale (zoom)
@@ -117,15 +119,10 @@ function render ({ gl, program, zoom, offset, iterations, infinity }) {
 
     window.requestAnimationFrame (() => {
 
-        const zoomUniform = gl.getUniformLocation (program, 'zoom')
-        const offsetUniform = gl.getUniformLocation (program, 'offset')
-        const iterationsUniform = gl.getUniformLocation (program, 'maxIterations')
-        // const infinityUniform = gl.getUniformLocation (program, 'infinity')
-
-        gl.uniform1f (zoomUniform, zoom)
-        // gl.uniform1i (infinityUniform, infinity)
-        gl.uniform1i (iterationsUniform, iterations)
-        gl.uniform2fv (offsetUniform, new Float64Array (offset.list))
+        gl.uniform1f (gl.getUniformLocation (program, 'zoom'), zoom)
+        gl.uniform1i (gl.getUniformLocation (program, 'maxIterations'), iterations)
+        gl.uniform2fv (gl.getUniformLocation (program, 'offset'), new Float64Array (offset.list))
+        // gl.uniform1i (gl.getUniformLocation (program, 'infinity'), infinity)
 
         gl.drawArrays (gl.TRIANGLE_STRIP, 0, 4)
     })
@@ -138,20 +135,15 @@ function setup ({ gl, scale }) {
 
     gl.viewport (0, 0, gl.canvas.width, gl.canvas.height)
 
-    // Get the strings for our GLSL shaders
-    const vertexShaderSource = document.getElementById ("2d-vertex-shader").text
-    const fragmentShaderSource = document.getElementById ("2d-fragment-shader").text
-
-    // create GLSL shaders, upload the GLSL source, compile the shaders
-    const vertexShader = createShader (gl, gl.VERTEX_SHADER, vertexShaderSource)
-    const fragmentShader = createShader (gl, gl.FRAGMENT_SHADER, fragmentShaderSource)
-
+    // Get the strings for our GLSL shaders, create GLSL shaders, upload the GLSL source, compile the shaders
     // Link the two shaders into a program
-    const program = createProgram (gl, vertexShader, fragmentShader)
+    const program = createProgram (gl,
+        createShader (gl, gl.VERTEX_SHADER, document.getElementById ("2d-vertex-shader").text),
+        createShader (gl, gl.FRAGMENT_SHADER, document.getElementById ("2d-fragment-shader").text),
+    )
 
     // look up where the vertex data needs to go.
     const vertexPositionAttribute = gl.getAttribLocation (program, 'aVertexPosition')
-    const canvasSizeUniform = gl.getUniformLocation (program, 'canvasSize')
 
     // Create a buffer and put three 2d clip space points in it
     const positionBuffer = gl.createBuffer ()
@@ -181,7 +173,10 @@ function setup ({ gl, scale }) {
 
     // Tell it to use our program (pair of shaders)
     gl.useProgram (program)
-    gl.uniform2fv (canvasSizeUniform, new Float32Array ([ gl.canvas.width, gl.canvas.height ]))
+    gl.uniform2fv (
+        gl.getUniformLocation (program, 'canvasSize'),
+        new Float32Array ([ gl.canvas.width, gl.canvas.height ])
+    )
 
     // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
     const size = 2          // 2 components per iteration

@@ -5,24 +5,8 @@ const { expect } = require ('chai')
 
 describe ('Float 32', () => {
 
-    // 32 -> 2 × 16
-    // > f = x => new Float32Array ([x])[0]
-    // [Function: f]
-    // > var p2 = f (f (Math.PI) * f (Math.pow (2, 13) + 1))
-    // 25739.068359375
-    // > var h16 = f (f (p2) - f (f (p2) - f (Math.PI))) // heading half precision number
-    // undefined
-    // > h16.toString (2)
-    // '11.001001'
-    // > var t16 = f (f (Math.PI) - f (h16)) // trailing half precision number
-    // > t16.toString (2)
-    // '0.0000000000111111011011'
-    // > f (f (h16) + f (t16)).toString (2)
-    // '11.0010010000111111011011'
-    // > f (Math.PI).toString (2)
-    // '11.0010010000111111011011'
-
     it ('multiplies with double precision', () => {
+
         const a = f32 (Math.PI)
         const b = f32 (Math.sqrt (2))
 
@@ -43,7 +27,7 @@ describe ('Emulated Float 64', () => {
         const eml = v2f32.from64 (f64)
 
         expect (eml.type).to.equal ('v2f32')
-        expect (eml.x + eml.y).to.be.closeTo (f64, 1e-14)
+        expect (eml.x + eml.y).to.be.closeTo (f64, 1e-14) // TODO: try to increase the accuracy
     })
 
     it ('supports addition', () => {
@@ -104,42 +88,3 @@ describe ('Emulated Float 64', () => {
         expect (b.add (v2f32.from64 (1)).eq (c)).to.be.true
     })
 })
-
-// 64 -> 2 × 32
-
-// console.log ('Math.PI                                       :', Math.PI.toString (2))
-// var split1 = Math.PI * (Math.pow (2, 26) + 1)
-// console.log ('var split1 = Math.PI * (Math.pow (2, 26) + 1) :', split1.toString (2))
-// var h32 = split1 - (split1 - Math.PI)
-// console.log ('var h32 = split1 - (split1 - Math.PI)         :', h32.toString (2))
-// var t32 = Math.PI - (split1 - (split1 - Math.PI))
-// console.log ('var t32 = Math.PI - (p1 - (p1 - Math.PI))     :', t32.toString (2))
-// console.log ('h32 + t32                                     :', (h32 + t32).toString (2))
-// console.log ('Math.PI                                       :', Math.PI.toString (2))
-// console.log (' ')
-
-// var test = v2f32.from64 (Math.PI)
-
-// console.log ('test            :', test)
-// console.log ('test.x + test.y :', test.x + test.y)
-// console.log ('Math.PI         :', Math.PI)
-
-// console.log ('Math.PI         :', Math.PI.toString (2))
-// console.log ('test.x + test.y :', (test.x + test.y).toString (2))
-// console.log ('test.x          :', (test.x).toString (2))
-// console.log ('test.y          :', (test.y).toString (2))
-
-// > (Math.PI * (Math.pow (2, 26) + 1)).toString (2)
-// '1100100100001111110110101101.0100011001010101111101101'
-// > var p1 = (Math.PI * (Math.pow (2, 26) + 1))
-// undefined
-// > var h32 = (p1 - (p1 - Math.PI))
-// > h32.toString (2)
-// '11.0010010000111111011010101'
-// > var t32 = (Math.PI - (p1 - (p1 - Math.PI)))
-// > t32.toString (2)
-// '0.000000000000000000000000000010001000010110100011'
-// > (h32 + t32).toString (2)
-// '11.001001000011111101101010100010001000010110100011'
-// > Math.PI.toString (2)
-// '11.001001000011111101101010100010001000010110100011'
